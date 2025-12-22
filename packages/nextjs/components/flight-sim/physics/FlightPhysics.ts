@@ -9,9 +9,11 @@ import {
   MASS,
   MAX_PITCH_RATE,
   MAX_ROLL_RATE,
+  MAX_YAW_RATE,
   PITCH_DAMP,
   RHO,
   ROLL_DAMP,
+  RUDDER_COORDINATION,
   SIDE_DRAG_FACTOR,
   STALL_ALPHA_NEG,
   STALL_ALPHA_POS,
@@ -178,13 +180,18 @@ export function applyControlInputs(
   const targetRollRate = controls.roll * MAX_ROLL_RATE;
   // Positive pitch input = pitch up (nose rises)
   const targetPitchRate = -controls.pitch * MAX_PITCH_RATE;
+  // Coordinated rudder - automatically yaw in the direction of roll to keep turn coordinated
+  // This prevents the nose from pitching up during banked turns
+  const targetYawRate = controls.roll * MAX_YAW_RATE * RUDDER_COORDINATION;
 
   // Smoothly interpolate towards target rates
   const rollResponse = 5.0; // responsiveness
   const pitchResponse = 4.0;
+  const yawResponse = 4.0;
 
   newAngularVel.z += (targetRollRate - newAngularVel.z) * rollResponse * deltaTime;
   newAngularVel.x += (targetPitchRate - newAngularVel.x) * pitchResponse * deltaTime;
+  newAngularVel.y += (targetYawRate - newAngularVel.y) * yawResponse * deltaTime;
 
   return newAngularVel;
 }
@@ -212,12 +219,21 @@ export function applyWeathervane(
 
   const velocityNorm = velocity.clone().normalize();
 
-  // Calculate yaw error
+  // Calculate sideslip (how much velocity is to the side of where nose points)
   const right = getRightVector(quaternion);
-  const yawError = velocityNorm.dot(right);
+  const sideslip = velocityNorm.dot(right);
 
+  // Only apply weathervane if there's significant sideslip
+  if (Math.abs(sideslip) < 0.01) return angularVelocity;
+
+  // Calculate target yaw rate to correct sideslip (proportional control)
+  // Scale by airspeed - more effective at higher speeds
+  const speedFactor = Math.min(1, airspeed / 30);
+  const targetYawRate = -sideslip * WEATHERVANE_STRENGTH * speedFactor;
+
+  // Blend towards target yaw rate (not accumulate)
   const newAngularVel = angularVelocity.clone();
-  newAngularVel.y -= yawError * WEATHERVANE_STRENGTH * deltaTime * 2;
+  newAngularVel.y += (targetYawRate - newAngularVel.y) * deltaTime * 3;
 
   return newAngularVel;
 }

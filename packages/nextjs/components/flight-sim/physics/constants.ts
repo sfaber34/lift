@@ -27,13 +27,14 @@ export const K_DRAG = 0.045; // induced drag coefficient
 export const SIDE_DRAG_FACTOR = 2.5;
 export const ROLL_DAMP = 0.15;
 export const PITCH_DAMP = 0.12;
-export const YAW_DAMP = 0.08;
-export const WEATHERVANE_STRENGTH = 0.6;
+export const YAW_DAMP = 0.25; // Increased to stabilize yaw
+export const WEATHERVANE_STRENGTH = 0.3; // Reduced to prevent yaw oscillation
 
 // Control effectiveness
 export const MAX_ROLL_RATE = 70 * (Math.PI / 180); // rad/s
 export const MAX_PITCH_RATE = 35 * (Math.PI / 180); // rad/s
 export const MAX_YAW_RATE = 25 * (Math.PI / 180); // rad/s
+export const RUDDER_COORDINATION = 0; // Auto-rudder mix ratio (yaw per roll input)
 
 // Thermal defaults
 export const THERMAL_COUNT = 8;
