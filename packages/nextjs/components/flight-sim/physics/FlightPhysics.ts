@@ -33,6 +33,7 @@ export interface GliderState {
 export interface ControlInput {
   pitch: number; // -1 to 1 (elevator)
   roll: number; // -1 to 1 (aileron)
+  yaw: number; // -1 to 1 (rudder)
 }
 
 export interface WindField {
@@ -180,9 +181,11 @@ export function applyControlInputs(
   const targetRollRate = controls.roll * MAX_ROLL_RATE;
   // Positive pitch input = pitch up (nose rises)
   const targetPitchRate = -controls.pitch * MAX_PITCH_RATE;
-  // Coordinated rudder - automatically yaw in the direction of roll to keep turn coordinated
-  // This prevents the nose from pitching up during banked turns
-  const targetYawRate = controls.roll * MAX_YAW_RATE * RUDDER_COORDINATION;
+  // Manual rudder input + optional auto-coordination from roll
+  // Positive yaw input = nose goes right (negate because +Y rotation is CCW from above)
+  const autoYaw = controls.roll * MAX_YAW_RATE * RUDDER_COORDINATION;
+  const manualYaw = -controls.yaw * MAX_YAW_RATE;
+  const targetYawRate = manualYaw + autoYaw;
 
   // Smoothly interpolate towards target rates
   const rollResponse = 5.0; // responsiveness

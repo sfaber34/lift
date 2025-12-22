@@ -193,7 +193,7 @@ function SkyRenderer({ thermalSystemRef }: { thermalSystemRef: React.MutableRefO
 // Main game component
 export function FlightSimGame() {
   // Control input ref
-  const controlsRef = useRef<ControlInput>({ pitch: 0, roll: 0 });
+  const controlsRef = useRef<ControlInput>({ pitch: 0, roll: 0, yaw: 0 });
 
   // Game state as refs (no re-renders during physics!)
   const gliderStateRef = useRef<GliderState>(createInitialState(new THREE.Vector3(0, 500, 0), 0));

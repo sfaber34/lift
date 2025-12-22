@@ -10,26 +10,48 @@ interface JoystickControlsProps {
 }
 
 export function JoystickControls({ onControlUpdate }: JoystickControlsProps) {
-  const controlsRef = useRef<ControlInput>({ pitch: 0, roll: 0 });
+  const controlsRef = useRef<ControlInput>({ pitch: 0, roll: 0, yaw: 0 });
 
-  const handleMove = useCallback(
+  // Main stick (right) - pitch and roll
+  const handleMainMove = useCallback(
     (event: IJoystickUpdateEvent) => {
-      // x controls roll, y controls pitch
-      // Invert pitch so pushing up pitches up
-      const newControls: ControlInput = {
+      controlsRef.current = {
+        ...controlsRef.current,
         roll: event.x ?? 0,
         pitch: -(event.y ?? 0), // Invert: push forward = pitch down
       };
-      controlsRef.current = newControls;
-      onControlUpdate(newControls);
+      onControlUpdate(controlsRef.current);
     },
     [onControlUpdate],
   );
 
-  const handleStop = useCallback(() => {
-    const neutralControls: ControlInput = { pitch: 0, roll: 0 };
-    controlsRef.current = neutralControls;
-    onControlUpdate(neutralControls);
+  const handleMainStop = useCallback(() => {
+    controlsRef.current = {
+      ...controlsRef.current,
+      pitch: 0,
+      roll: 0,
+    };
+    onControlUpdate(controlsRef.current);
+  }, [onControlUpdate]);
+
+  // Rudder stick (left) - yaw only
+  const handleRudderMove = useCallback(
+    (event: IJoystickUpdateEvent) => {
+      controlsRef.current = {
+        ...controlsRef.current,
+        yaw: event.x ?? 0,
+      };
+      onControlUpdate(controlsRef.current);
+    },
+    [onControlUpdate],
+  );
+
+  const handleRudderStop = useCallback(() => {
+    controlsRef.current = {
+      ...controlsRef.current,
+      yaw: 0,
+    };
+    onControlUpdate(controlsRef.current);
   }, [onControlUpdate]);
 
   // Keyboard controls for desktop testing
@@ -39,19 +61,40 @@ export function JoystickControls({ onControlUpdate }: JoystickControlsProps) {
     const updateFromKeyboard = () => {
       let pitch = 0;
       let roll = 0;
+      let yaw = 0;
 
       if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) pitch = 1;
       if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) pitch = -1;
       if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) roll = -1;
       if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) roll = 1;
+      if (keys.has("q") || keys.has("Q")) yaw = -1; // Rudder left
+      if (keys.has("e") || keys.has("E")) yaw = 1; // Rudder right
 
-      const newControls: ControlInput = { pitch, roll };
-      controlsRef.current = newControls;
-      onControlUpdate(newControls);
+      controlsRef.current = { pitch, roll, yaw };
+      onControlUpdate(controlsRef.current);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d", "W", "A", "S", "D"].includes(e.key)) {
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "w",
+          "a",
+          "s",
+          "d",
+          "W",
+          "A",
+          "S",
+          "D",
+          "q",
+          "e",
+          "Q",
+          "E",
+        ].includes(e.key)
+      ) {
         e.preventDefault();
         keys.add(e.key);
         updateFromKeyboard();
@@ -73,26 +116,45 @@ export function JoystickControls({ onControlUpdate }: JoystickControlsProps) {
   }, [onControlUpdate]);
 
   return (
-    <div className="absolute bottom-8 right-8 flex flex-col items-center gap-2">
-      {/* Joystick container */}
-      <div className="relative p-4 bg-black/30 rounded-full backdrop-blur-sm">
-        <Joystick
-          size={140}
-          baseColor="rgba(255, 255, 255, 0.15)"
-          stickColor="rgba(255, 255, 255, 0.6)"
-          move={handleMove}
-          stop={handleStop}
-          throttle={50}
-        />
+    <>
+      {/* Rudder joystick (left side) - horizontal only */}
+      <div className="absolute bottom-8 left-8 flex flex-col items-center gap-2">
+        <div className="relative p-3 bg-black/30 rounded-full backdrop-blur-sm">
+          <Joystick
+            size={100}
+            baseColor="rgba(255, 255, 255, 0.15)"
+            stickColor="rgba(255, 200, 100, 0.7)"
+            move={handleRudderMove}
+            stop={handleRudderStop}
+            throttle={50}
+            minDistance={10}
+          />
+        </div>
+        <div className="text-white/50 text-xs font-mono text-center">
+          <div>← Rudder →</div>
+          <div className="text-[10px] text-white/30">Q / E</div>
+        </div>
       </div>
 
-      {/* Control hints */}
-      <div className="text-white/50 text-xs font-mono text-center">
-        <div>↑ Pitch Up</div>
-        <div>← Roll → </div>
-        <div>↓ Pitch Down</div>
+      {/* Main joystick (right side) - pitch and roll */}
+      <div className="absolute bottom-8 right-8 flex flex-col items-center gap-2">
+        <div className="relative p-4 bg-black/30 rounded-full backdrop-blur-sm">
+          <Joystick
+            size={140}
+            baseColor="rgba(255, 255, 255, 0.15)"
+            stickColor="rgba(255, 255, 255, 0.6)"
+            move={handleMainMove}
+            stop={handleMainStop}
+            throttle={50}
+          />
+        </div>
+        <div className="text-white/50 text-xs font-mono text-center">
+          <div>↑ Pitch Up</div>
+          <div>← Roll →</div>
+          <div>↓ Pitch Down</div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -119,7 +181,7 @@ export function ControlsHelp({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-4 text-sm">
           <div>
-            <h3 className="font-bold text-amber-400">Joystick / Arrow Keys</h3>
+            <h3 className="font-bold text-amber-400">Right Stick / Arrow Keys</h3>
             <ul className="ml-4 mt-1 space-y-1 text-white/80">
               <li>↑ / W - Pitch up (climb, slow down)</li>
               <li>↓ / S - Pitch down (dive, speed up)</li>
@@ -129,22 +191,21 @@ export function ControlsHelp({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <h3 className="font-bold text-amber-400">Flying Tips</h3>
+            <h3 className="font-bold text-amber-400">Left Stick / Q &amp; E</h3>
             <ul className="ml-4 mt-1 space-y-1 text-white/80">
-              <li>• Watch the variometer (VARIO) - green means lift!</li>
-              <li>• Circle in thermals to gain altitude</li>
-              <li>• Look for clouds - thermals form underneath</li>
-              <li>• Don&apos;t stall! Keep airspeed above 70 km/h</li>
-              <li>• Bank ~30-45° when circling thermals</li>
+              <li>Q - Rudder left (yaw nose left)</li>
+              <li>E - Rudder right (yaw nose right)</li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-bold text-amber-400">Goal</h3>
-            <p className="ml-4 mt-1 text-white/80">
-              Stay aloft as long as possible! Use thermals (rising air columns) to gain altitude. Without thrust, your
-              glider constantly trades altitude for airspeed.
-            </p>
+            <h3 className="font-bold text-amber-400">Flying Tips</h3>
+            <ul className="ml-4 mt-1 space-y-1 text-white/80">
+              <li>• Use rudder to keep turns coordinated</li>
+              <li>• Watch the variometer - green means lift!</li>
+              <li>• Circle in thermals to gain altitude</li>
+              <li>• Don&apos;t stall! Keep airspeed above 70 km/h</li>
+            </ul>
           </div>
         </div>
 
