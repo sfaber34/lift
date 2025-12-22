@@ -117,13 +117,13 @@ export function JoystickControls({ onControlUpdate }: JoystickControlsProps) {
 
   return (
     <>
-      {/* Rudder joystick (left side) - horizontal only */}
+      {/* Rudder joystick (left side) */}
       <div className="absolute bottom-8 left-8 flex flex-col items-center gap-2">
         <div className="relative p-3 bg-black/30 rounded-full backdrop-blur-sm">
           <Joystick
             size={100}
             baseColor="rgba(255, 255, 255, 0.15)"
-            stickColor="rgba(255, 200, 100, 0.7)"
+            stickColor="rgba(255, 200, 100, 0.8)"
             move={handleRudderMove}
             stop={handleRudderStop}
             throttle={50}
@@ -163,7 +163,7 @@ export function ResetButton({ onReset }: { onReset: () => void }) {
   return (
     <button
       onClick={onReset}
-      className="absolute top-4 right-4 px-4 py-2 bg-white/10 hover:bg-white/20 
+      className="px-4 py-2 bg-white/10 hover:bg-white/20 
                  text-white font-mono text-sm rounded-lg border border-white/20
                  transition-colors backdrop-blur-sm"
     >

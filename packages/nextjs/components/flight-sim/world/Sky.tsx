@@ -67,7 +67,7 @@ function ThermalCloud({ thermal }: { thermal: Thermal }) {
   );
 }
 
-// Thermal visualization (subtle column indicator)
+// Thermal visualization - more visible rising air column
 function ThermalColumn({ thermal }: { thermal: Thermal }) {
   const columnRef = useRef<THREE.Mesh>(null);
   const time = useRef(Math.random() * 100);
@@ -75,9 +75,9 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
   useFrame((_, delta) => {
     time.current += delta;
     if (columnRef.current) {
-      // Animate opacity slightly
+      // Animate opacity - pulsing effect
       const material = columnRef.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.03 + Math.sin(time.current * 2) * 0.01;
+      material.opacity = 0.12 + Math.sin(time.current * 1.5) * 0.04;
     }
   });
 
@@ -85,10 +85,19 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
   const lifeFraction = thermal.age / thermal.lifetime;
   if (lifeFraction < 0.1 || lifeFraction > 0.85) return null;
 
+  // Stronger thermals are more visible
+  const strengthFactor = thermal.strength / 3.5;
+
   return (
     <mesh ref={columnRef} position={[thermal.center.x, CLOUD_BASE / 2, thermal.center.y]}>
-      <cylinderGeometry args={[thermal.radius * 0.8, thermal.radius * 1.2, CLOUD_BASE, 16, 1, true]} />
-      <meshBasicMaterial color="#ffffff" transparent opacity={0.03} side={THREE.DoubleSide} depthWrite={false} />
+      <cylinderGeometry args={[thermal.radius * 0.6, thermal.radius * 1.0, CLOUD_BASE, 16, 1, true]} />
+      <meshBasicMaterial
+        color="#ffffee"
+        transparent
+        opacity={0.1 + strengthFactor * 0.08}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
     </mesh>
   );
 }

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { WORLD_SIZE } from "../physics/constants";
 import * as THREE from "three";
 
 interface TerrainProps {
   playerPosition: THREE.Vector3;
 }
+
+// Cache for terrain geometries to avoid recalculation
+const geometryCache = new Map<string, THREE.PlaneGeometry>();
 
 // Simple noise function for terrain generation
 function noise2D(x: number, z: number, seed: number = 0): number {
@@ -74,8 +77,8 @@ export function getTerrainHeight(x: number, z: number): number {
   return Math.max(0, combinedHeight + 20);
 }
 
-// Terrain chunk component
-function TerrainChunk({
+// Terrain chunk component - memoized to prevent unnecessary re-renders
+const TerrainChunk = memo(function TerrainChunk({
   chunkX,
   chunkZ,
   size,
@@ -87,6 +90,13 @@ function TerrainChunk({
   resolution: number;
 }) {
   const geometry = useMemo(() => {
+    const cacheKey = `${chunkX}_${chunkZ}_${size}_${resolution}`;
+
+    // Check cache first
+    if (geometryCache.has(cacheKey)) {
+      return geometryCache.get(cacheKey)!;
+    }
+
     const geo = new THREE.PlaneGeometry(size, size, resolution, resolution);
     const positions = geo.attributes.position.array as Float32Array;
     const colors = new Float32Array(positions.length);
@@ -128,6 +138,9 @@ function TerrainChunk({
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
 
+    // Cache the geometry
+    geometryCache.set(cacheKey, geo);
+
     return geo;
   }, [chunkX, chunkZ, size, resolution]);
 
@@ -141,13 +154,13 @@ function TerrainChunk({
       <meshStandardMaterial vertexColors flatShading />
     </mesh>
   );
-}
+});
 
 // Main terrain component with chunking
 export function Terrain({ playerPosition }: TerrainProps) {
   const chunkSize = 500;
   const viewDistance = 3; // Number of chunks in each direction
-  const resolution = 64;
+  const resolution = 32; // Reduced from 64 for better performance
 
   // Pre-calculate chunk coordinates for dependency array
   const centerChunkX = Math.round(playerPosition.x / chunkSize);

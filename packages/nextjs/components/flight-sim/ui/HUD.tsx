@@ -6,7 +6,6 @@ interface HUDProps {
   airspeed: number;
   altitude: number;
   verticalSpeed: number;
-  heading: number;
   isStalling: boolean;
   bankAngle: number;
   pitchAngle: number;
@@ -27,10 +26,10 @@ function Variometer({ verticalSpeed }: { verticalSpeed: number }) {
     return "#ef4444"; // Strong sink - red
   };
 
-  // Generate tick marks
+  // Generate tick marks (from +10 at top to -10 at bottom)
   const ticks = useMemo(() => {
     const marks = [];
-    for (let i = -10; i <= 10; i += 2) {
+    for (let i = 10; i >= -10; i -= 2) {
       marks.push(i);
     }
     return marks;
@@ -43,7 +42,7 @@ function Variometer({ verticalSpeed }: { verticalSpeed: number }) {
 
       {/* Scale */}
       <div className="absolute top-5 bottom-5 left-1 right-6 flex flex-col justify-between">
-        {ticks.reverse().map(tick => (
+        {ticks.map(tick => (
           <div key={tick} className="flex items-center gap-1">
             <div className="w-2 h-px bg-white/40" />
             <span className="text-[7px] text-white/60 font-mono w-4 text-right">{tick > 0 ? `+${tick}` : tick}</span>
@@ -160,35 +159,22 @@ function Altimeter({ altitude }: { altitude: number }) {
   );
 }
 
-// Heading indicator
-function HeadingIndicator({ heading }: { heading: number }) {
-  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-  const dirIndex = Math.round(heading / 45) % 8;
-
-  return (
-    <div className="relative h-12 w-24 bg-black/70 rounded-lg border border-white/30 p-1">
-      {/* Compass rose */}
-      <div className="flex items-center justify-center gap-2">
-        <div className="text-lg font-bold text-amber-400 font-mono">{directions[dirIndex]}</div>
-        <div className="text-sm text-white/80 font-mono">{Math.round(heading)}°</div>
-      </div>
-    </div>
-  );
-}
-
 // Bank angle indicator (artificial horizon simplified)
 function AttitudeIndicator({ bankAngle, pitchAngle }: { bankAngle: number; pitchAngle: number }) {
+  // Clamp pitch display to reasonable range
+  const displayPitch = Math.max(-40, Math.min(40, pitchAngle));
+
   return (
     <div className="relative h-20 w-20 bg-black/70 rounded-full border border-white/30 overflow-hidden">
-      {/* Sky/Ground */}
+      {/* Sky/Ground - nose up = more sky = horizon moves down = higher percentage */}
       <div
         className="absolute inset-0"
         style={{
           transform: `rotate(${-bankAngle}deg)`,
           background: `linear-gradient(to bottom, 
             #4a90d9 0%, 
-            #4a90d9 ${50 - pitchAngle}%, 
-            #8b6914 ${50 - pitchAngle}%, 
+            #4a90d9 ${50 + displayPitch}%, 
+            #8b6914 ${50 + displayPitch}%, 
             #8b6914 100%)`,
         }}
       />
@@ -197,7 +183,7 @@ function AttitudeIndicator({ bankAngle, pitchAngle }: { bankAngle: number; pitch
       <div
         className="absolute left-2 right-2 h-0.5 bg-white top-1/2"
         style={{
-          transform: `rotate(${-bankAngle}deg) translateY(${pitchAngle}px)`,
+          transform: `rotate(${-bankAngle}deg) translateY(${-displayPitch * 0.4}px)`,
         }}
       />
 
@@ -228,30 +214,27 @@ function AttitudeIndicator({ bankAngle, pitchAngle }: { bankAngle: number; pitch
 }
 
 // Main HUD component
-export function HUD({ airspeed, altitude, verticalSpeed, heading, isStalling, bankAngle, pitchAngle }: HUDProps) {
+export function HUD({ airspeed, altitude, verticalSpeed, isStalling, bankAngle, pitchAngle }: HUDProps) {
   return (
-    <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none select-none">
-      {/* Top row */}
-      <div className="flex gap-2 items-start">
-        <AttitudeIndicator bankAngle={bankAngle} pitchAngle={pitchAngle} />
-        <div className="flex flex-col gap-1">
-          <HeadingIndicator heading={heading} />
-          <Altimeter altitude={altitude} />
-        </div>
-      </div>
-
-      {/* Bottom row */}
-      <div className="flex gap-2">
+    <>
+      {/* Upper left - Airspeed and Vario */}
+      <div className="absolute top-4 left-4 flex gap-2 pointer-events-none select-none">
         <AirspeedIndicator airspeed={airspeed} isStalling={isStalling} />
         <Variometer verticalSpeed={verticalSpeed} />
       </div>
 
+      {/* Upper right - Attitude and Altitude */}
+      <div className="absolute top-4 right-4 flex gap-2 pointer-events-none select-none">
+        <AttitudeIndicator bankAngle={bankAngle} pitchAngle={pitchAngle} />
+        <Altimeter altitude={altitude} />
+      </div>
+
       {/* Stall warning overlay */}
       {isStalling && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none">
           <div className="bg-red-600/90 text-white font-bold text-lg px-4 py-2 rounded animate-pulse">STALL</div>
         </div>
       )}
-    </div>
+    </>
   );
 }

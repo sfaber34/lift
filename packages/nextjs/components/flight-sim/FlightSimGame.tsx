@@ -106,13 +106,13 @@ function GliderRenderer({ gliderStateRef }: { gliderStateRef: React.MutableRefOb
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Wing tips (slightly curved up) */}
-      <mesh position={[-7.8, 0.4, 0]} rotation={[0, 0, 0.15]}>
-        <boxGeometry args={[0.8, 0.1, 0.8]} />
+      {/* Wing tips (winglets curved up) */}
+      <mesh position={[-7.2, 0.35, 0]} rotation={[0, 0, -0.3]}>
+        <boxGeometry args={[1.2, 0.1, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
-      <mesh position={[7.8, 0.4, 0]} rotation={[0, 0, -0.15]}>
-        <boxGeometry args={[0.8, 0.1, 0.8]} />
+      <mesh position={[7.2, 0.35, 0]} rotation={[0, 0, 0.3]}>
+        <boxGeometry args={[1.2, 0.1, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 
@@ -266,7 +266,6 @@ export function FlightSimGame() {
         airspeed={telemetry.airspeed}
         altitude={telemetry.altitude}
         verticalSpeed={telemetry.verticalSpeed}
-        heading={telemetry.heading}
         isStalling={telemetry.isStalling}
         bankAngle={telemetry.bankAngle}
         pitchAngle={telemetry.pitchAngle}
@@ -275,18 +274,18 @@ export function FlightSimGame() {
       {/* Joystick Controls */}
       <JoystickControls onControlUpdate={handleControlUpdate} />
 
-      {/* Reset Button */}
-      <ResetButton onReset={handleReset} />
-
-      {/* Help Button */}
-      <button
-        onClick={() => setShowHelp(true)}
-        className="absolute top-4 right-24 px-3 py-2 bg-white/10 hover:bg-white/20 
-                   text-white font-mono text-sm rounded-lg border border-white/20
-                   transition-colors backdrop-blur-sm"
-      >
-        ?
-      </button>
+      {/* Top center buttons */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2">
+        <button
+          onClick={() => setShowHelp(true)}
+          className="px-3 py-2 bg-white/10 hover:bg-white/20 
+                     text-white font-mono text-sm rounded-lg border border-white/20
+                     transition-colors backdrop-blur-sm"
+        >
+          ?
+        </button>
+        <ResetButton onReset={handleReset} />
+      </div>
 
       {/* Help Overlay */}
       {showHelp && <ControlsHelp onClose={() => setShowHelp(false)} />}
@@ -303,15 +302,6 @@ export function FlightSimGame() {
           </button>
         </div>
       )}
-
-      {/* Flight time display */}
-      <div className="absolute bottom-4 left-4 text-white/60 font-mono text-xs">
-        <div>ALT: {Math.round(telemetry.altitude)}m</div>
-        <div>
-          VS: {telemetry.verticalSpeed >= 0 ? "+" : ""}
-          {telemetry.verticalSpeed.toFixed(1)} m/s
-        </div>
-      </div>
     </div>
   );
 }

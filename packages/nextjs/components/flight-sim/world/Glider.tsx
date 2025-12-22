@@ -46,13 +46,13 @@ export function Glider({ state }: GliderProps) {
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Wing tips (slightly curved up) */}
-      <mesh position={[-7.8, 0.4, 0]} rotation={[0, 0, 0.15]}>
-        <boxGeometry args={[0.8, 0.1, 0.8]} />
+      {/* Wing tips (slightly curved up) - positioned at wing ends */}
+      <mesh position={[-7.9, 0.25, 0]} rotation={[0, 0, 0.2]}>
+        <boxGeometry args={[1.0, 0.1, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
-      <mesh position={[7.8, 0.4, 0]} rotation={[0, 0, -0.15]}>
-        <boxGeometry args={[0.8, 0.1, 0.8]} />
+      <mesh position={[7.9, 0.25, 0]} rotation={[0, 0, -0.2]}>
+        <boxGeometry args={[1.0, 0.1, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 
