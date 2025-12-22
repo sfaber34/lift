@@ -1,0 +1,160 @@
+"use client";
+
+import { useCallback, useEffect, useRef } from "react";
+import { ControlInput } from "../physics/FlightPhysics";
+import { Joystick } from "react-joystick-component";
+import type { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
+
+interface JoystickControlsProps {
+  onControlUpdate: (controls: ControlInput) => void;
+}
+
+export function JoystickControls({ onControlUpdate }: JoystickControlsProps) {
+  const controlsRef = useRef<ControlInput>({ pitch: 0, roll: 0 });
+
+  const handleMove = useCallback(
+    (event: IJoystickUpdateEvent) => {
+      // x controls roll, y controls pitch
+      // Invert pitch so pushing up pitches up
+      const newControls: ControlInput = {
+        roll: event.x ?? 0,
+        pitch: -(event.y ?? 0), // Invert: push forward = pitch down
+      };
+      controlsRef.current = newControls;
+      onControlUpdate(newControls);
+    },
+    [onControlUpdate],
+  );
+
+  const handleStop = useCallback(() => {
+    const neutralControls: ControlInput = { pitch: 0, roll: 0 };
+    controlsRef.current = neutralControls;
+    onControlUpdate(neutralControls);
+  }, [onControlUpdate]);
+
+  // Keyboard controls for desktop testing
+  useEffect(() => {
+    const keys = new Set<string>();
+
+    const updateFromKeyboard = () => {
+      let pitch = 0;
+      let roll = 0;
+
+      if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) pitch = 1;
+      if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) pitch = -1;
+      if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) roll = -1;
+      if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) roll = 1;
+
+      const newControls: ControlInput = { pitch, roll };
+      controlsRef.current = newControls;
+      onControlUpdate(newControls);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d", "W", "A", "S", "D"].includes(e.key)) {
+        e.preventDefault();
+        keys.add(e.key);
+        updateFromKeyboard();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keys.delete(e.key);
+      updateFromKeyboard();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [onControlUpdate]);
+
+  return (
+    <div className="absolute bottom-8 right-8 flex flex-col items-center gap-2">
+      {/* Joystick container */}
+      <div className="relative p-4 bg-black/30 rounded-full backdrop-blur-sm">
+        <Joystick
+          size={140}
+          baseColor="rgba(255, 255, 255, 0.15)"
+          stickColor="rgba(255, 255, 255, 0.6)"
+          move={handleMove}
+          stop={handleStop}
+          throttle={50}
+        />
+      </div>
+
+      {/* Control hints */}
+      <div className="text-white/50 text-xs font-mono text-center">
+        <div>↑ Pitch Up</div>
+        <div>← Roll → </div>
+        <div>↓ Pitch Down</div>
+      </div>
+    </div>
+  );
+}
+
+// Reset button component
+export function ResetButton({ onReset }: { onReset: () => void }) {
+  return (
+    <button
+      onClick={onReset}
+      className="absolute top-4 right-4 px-4 py-2 bg-white/10 hover:bg-white/20 
+                 text-white font-mono text-sm rounded-lg border border-white/20
+                 transition-colors backdrop-blur-sm"
+    >
+      RESET
+    </button>
+  );
+}
+
+// Help overlay
+export function ControlsHelp({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-gray-900 p-6 rounded-xl max-w-md text-white" onClick={e => e.stopPropagation()}>
+        <h2 className="text-xl font-bold mb-4 text-cyan-400">🪂 Glider Controls</h2>
+
+        <div className="space-y-4 text-sm">
+          <div>
+            <h3 className="font-bold text-amber-400">Joystick / Arrow Keys</h3>
+            <ul className="ml-4 mt-1 space-y-1 text-white/80">
+              <li>↑ / W - Pitch up (climb, slow down)</li>
+              <li>↓ / S - Pitch down (dive, speed up)</li>
+              <li>← / A - Roll left</li>
+              <li>→ / D - Roll right</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-amber-400">Flying Tips</h3>
+            <ul className="ml-4 mt-1 space-y-1 text-white/80">
+              <li>• Watch the variometer (VARIO) - green means lift!</li>
+              <li>• Circle in thermals to gain altitude</li>
+              <li>• Look for clouds - thermals form underneath</li>
+              <li>• Don&apos;t stall! Keep airspeed above 70 km/h</li>
+              <li>• Bank ~30-45° when circling thermals</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-amber-400">Goal</h3>
+            <p className="ml-4 mt-1 text-white/80">
+              Stay aloft as long as possible! Use thermals (rising air columns) to gain altitude. Without thrust, your
+              glider constantly trades altitude for airspeed.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-6 w-full py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-bold transition-colors"
+        >
+          START FLYING
+        </button>
+      </div>
+    </div>
+  );
+}
