@@ -57,7 +57,7 @@ function GameLoop({
   return (
     <>
       {/* Glider - reads from ref */}
-      <GliderRenderer gliderStateRef={gliderStateRef} thermalSystemRef={thermalSystemRef} />
+      <GliderRenderer gliderStateRef={gliderStateRef} thermalSystemRef={thermalSystemRef} controlsRef={controls} />
       <GliderCameraController gliderStateRef={gliderStateRef} />
 
       {/* World */}
@@ -69,20 +69,61 @@ function GameLoop({
   );
 }
 
-// Glider renderer that reads from ref - includes wing rock when in thermal
+// Glider renderer that reads from ref - includes wing rock when in thermal and animated control surfaces
 function GliderRenderer({
   gliderStateRef,
   thermalSystemRef,
+  controlsRef,
 }: {
   gliderStateRef: React.MutableRefObject<GliderState>;
   thermalSystemRef: React.MutableRefObject<ThermalSystemState>;
+  controlsRef: React.MutableRefObject<ControlInput>;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const wingRockRef = useRef(0);
   const timeRef = useRef(0);
 
+  // Control surface refs
+  const leftAileronRef = useRef<THREE.Mesh>(null);
+  const rightAileronRef = useRef<THREE.Mesh>(null);
+  const elevatorRef = useRef<THREE.Mesh>(null);
+  const rudderRef = useRef<THREE.Mesh>(null);
+
+  // Smoothed control positions for animation
+  const smoothControlsRef = useRef({ roll: 0, pitch: 0, yaw: 0 });
+
   useFrame((_, delta) => {
     timeRef.current += delta;
+
+    // Smooth the control inputs for animation
+    const smoothFactor = 0.15;
+    smoothControlsRef.current.roll += (controlsRef.current.roll - smoothControlsRef.current.roll) * smoothFactor;
+    smoothControlsRef.current.pitch += (controlsRef.current.pitch - smoothControlsRef.current.pitch) * smoothFactor;
+    smoothControlsRef.current.yaw += (controlsRef.current.yaw - smoothControlsRef.current.yaw) * smoothFactor;
+
+    // Animate control surfaces (visual only, doesn't affect physics)
+    const maxDeflection = 0.48; // radians (~27 degrees) - increased 20%
+
+    // Ailerons deflect opposite to each other
+    // Roll right (positive roll input) = left aileron down, right aileron up
+    if (leftAileronRef.current) {
+      leftAileronRef.current.rotation.x = smoothControlsRef.current.roll * maxDeflection;
+    }
+    if (rightAileronRef.current) {
+      rightAileronRef.current.rotation.x = -smoothControlsRef.current.roll * maxDeflection;
+    }
+
+    // Elevator deflects with pitch input
+    // Pitch up (positive pitch input) = elevator trailing edge up (positive rotation)
+    if (elevatorRef.current) {
+      elevatorRef.current.rotation.x = smoothControlsRef.current.pitch * maxDeflection;
+    }
+
+    // Rudder deflects with yaw input
+    // Yaw right (positive yaw input) = rudder trailing edge right
+    if (rudderRef.current) {
+      rudderRef.current.rotation.y = smoothControlsRef.current.yaw * maxDeflection;
+    }
 
     if (groupRef.current) {
       const position = gliderStateRef.current.position;
@@ -137,23 +178,61 @@ function GliderRenderer({
         <meshStandardMaterial color="#3399ff" transparent opacity={0.6} metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Main wing - straight, no wing tips */}
-      <mesh position={[0, 0.1, 0]} rotation={[0, 0, 0]}>
-        <boxGeometry args={[15, 0.15, 1.2]} />
+      {/* Main wing - full span, front portion (fixed leading edge) */}
+      <mesh position={[0, 0.1, 0.2]}>
+        <boxGeometry args={[15, 0.15, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Horizontal stabilizer - at tail (-Z) */}
-      <mesh position={[0, 0.1, -3.5]} rotation={[0, 0, 0]}>
-        <boxGeometry args={[3.5, 0.08, 0.6]} />
+      {/* Wing trailing edge - center section (between ailerons) */}
+      <mesh position={[0, 0.1, -0.35]}>
+        <boxGeometry args={[7, 0.15, 0.5]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Vertical stabilizer */}
-      <mesh position={[0, 0.7, -3.2]} rotation={[0, 0, 0]}>
-        <boxGeometry args={[0.08, 1.2, 0.8]} />
+      {/* Left aileron - outer edge at -7.5, spans inward to -3.5 */}
+      <group position={[-5.5, 0.1, -0.35]}>
+        <mesh ref={leftAileronRef} position={[0, 0, -0.25]}>
+          <boxGeometry args={[4, 0.12, 0.5]} />
+          <meshStandardMaterial color="#ffcccc" metalness={0.2} roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Right aileron - outer edge at +7.5, spans inward to +3.5 */}
+      <group position={[5.5, 0.1, -0.35]}>
+        <mesh ref={rightAileronRef} position={[0, 0, -0.25]}>
+          <boxGeometry args={[4, 0.12, 0.5]} />
+          <meshStandardMaterial color="#ffcccc" metalness={0.2} roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Horizontal stabilizer - fixed front part */}
+      <mesh position={[0, 0.1, -3.3]}>
+        <boxGeometry args={[3.5, 0.08, 0.3]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
+
+      {/* Elevator - full-moving horizontal tail */}
+      <group position={[0, 0.1, -3.6]}>
+        <mesh ref={elevatorRef} position={[0, 0, -0.15]}>
+          <boxGeometry args={[3.5, 0.08, 0.4]} />
+          <meshStandardMaterial color="#ccccff" metalness={0.2} roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Vertical stabilizer - fixed front part */}
+      <mesh position={[0, 0.7, -3.1]}>
+        <boxGeometry args={[0.08, 1.2, 0.5]} />
+        <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
+      </mesh>
+
+      {/* Rudder - pivots at front edge */}
+      <group position={[0, 0.7, -3.45]}>
+        <mesh ref={rudderRef} position={[0, 0, -0.2]}>
+          <boxGeometry args={[0.08, 1.2, 0.4]} />
+          <meshStandardMaterial color="#ccffcc" metalness={0.2} roughness={0.8} />
+        </mesh>
+      </group>
 
       {/* Tail fin top */}
       <mesh position={[0, 1.3, -3.5]} rotation={[-0.2, 0, 0]}>
