@@ -57,7 +57,7 @@ function GameLoop({
   return (
     <>
       {/* Glider - reads from ref */}
-      <GliderRenderer gliderStateRef={gliderStateRef} />
+      <GliderRenderer gliderStateRef={gliderStateRef} thermalSystemRef={thermalSystemRef} />
       <GliderCameraController gliderStateRef={gliderStateRef} />
 
       {/* World */}
@@ -69,14 +69,51 @@ function GameLoop({
   );
 }
 
-// Glider renderer that reads from ref
-function GliderRenderer({ gliderStateRef }: { gliderStateRef: React.MutableRefObject<GliderState> }) {
+// Glider renderer that reads from ref - includes wing rock when in thermal
+function GliderRenderer({
+  gliderStateRef,
+  thermalSystemRef,
+}: {
+  gliderStateRef: React.MutableRefObject<GliderState>;
+  thermalSystemRef: React.MutableRefObject<ThermalSystemState>;
+}) {
   const groupRef = useRef<THREE.Group>(null);
+  const wingRockRef = useRef(0);
+  const timeRef = useRef(0);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
+    timeRef.current += delta;
+
     if (groupRef.current) {
-      groupRef.current.position.copy(gliderStateRef.current.position);
-      groupRef.current.quaternion.copy(gliderStateRef.current.quaternion);
+      const position = gliderStateRef.current.position;
+      const baseQuaternion = gliderStateRef.current.quaternion;
+
+      // Check if we're in a thermal - calculate lift at current position
+      const pos2D = new THREE.Vector2(position.x, position.z);
+      let inThermalStrength = 0;
+      for (const thermal of thermalSystemRef.current.thermals) {
+        const dist = pos2D.distanceTo(thermal.center);
+        if (dist < thermal.radius * 1.2) {
+          // Weight by how centered we are in the thermal
+          const strengthFactor = 1 - dist / (thermal.radius * 1.2);
+          inThermalStrength = Math.max(inThermalStrength, strengthFactor * thermal.strength);
+        }
+      }
+
+      // Apply subtle wing rock when in thermal
+      const targetRock = inThermalStrength > 0 ? Math.sin(timeRef.current * 3) * 0.03 * (inThermalStrength / 5) : 0;
+      wingRockRef.current += (targetRock - wingRockRef.current) * 0.1;
+
+      // Apply position and rotation with wing rock
+      groupRef.current.position.copy(position);
+      groupRef.current.quaternion.copy(baseQuaternion);
+
+      // Add wing rock as additional roll
+      if (Math.abs(wingRockRef.current) > 0.001) {
+        const rockQuat = new THREE.Quaternion();
+        rockQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), wingRockRef.current);
+        groupRef.current.quaternion.multiply(rockQuat);
+      }
     }
   });
 
@@ -100,19 +137,9 @@ function GliderRenderer({ gliderStateRef }: { gliderStateRef: React.MutableRefOb
         <meshStandardMaterial color="#3399ff" transparent opacity={0.6} metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Main wing */}
+      {/* Main wing - straight, no wing tips */}
       <mesh position={[0, 0.1, 0]} rotation={[0, 0, 0]}>
         <boxGeometry args={[15, 0.15, 1.2]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
-      </mesh>
-
-      {/* Wing tips (winglets curved up) */}
-      <mesh position={[-7.2, 0.35, 0]} rotation={[0, 0, -0.3]}>
-        <boxGeometry args={[1.2, 0.1, 0.8]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
-      </mesh>
-      <mesh position={[7.2, 0.35, 0]} rotation={[0, 0, 0.3]}>
-        <boxGeometry args={[1.2, 0.1, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 

@@ -40,19 +40,9 @@ export function Glider({ state }: GliderProps) {
         <meshStandardMaterial color="#3399ff" transparent opacity={0.6} metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Main wing */}
+      {/* Main wing - straight, no wing tips */}
       <mesh position={[0, 0.1, 0]} rotation={[0, 0, 0]}>
         <boxGeometry args={[15, 0.15, 1.2]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
-      </mesh>
-
-      {/* Wing tips (slightly curved up) - positioned at wing ends */}
-      <mesh position={[-7.9, 0.25, 0]} rotation={[0, 0, 0.2]}>
-        <boxGeometry args={[1.0, 0.1, 0.8]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
-      </mesh>
-      <mesh position={[7.9, 0.25, 0]} rotation={[0, 0, -0.2]}>
-        <boxGeometry args={[1.0, 0.1, 0.8]} />
         <meshStandardMaterial color="#ffffff" metalness={0.2} roughness={0.8} />
       </mesh>
 

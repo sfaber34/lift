@@ -67,9 +67,10 @@ function ThermalCloud({ thermal }: { thermal: Thermal }) {
   );
 }
 
-// Thermal visualization - more visible rising air column
+// Thermal visualization - symmetrical rising air column with interior fill
 function ThermalColumn({ thermal }: { thermal: Thermal }) {
   const columnRef = useRef<THREE.Mesh>(null);
+  const fillRef = useRef<THREE.Mesh>(null);
   const time = useRef(Math.random() * 100);
 
   useFrame((_, delta) => {
@@ -77,7 +78,12 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
     if (columnRef.current) {
       // Animate opacity - pulsing effect
       const material = columnRef.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.12 + Math.sin(time.current * 1.5) * 0.04;
+      material.opacity = 0.15 + Math.sin(time.current * 1.5) * 0.05;
+    }
+    if (fillRef.current) {
+      // Interior fill pulses gently
+      const material = fillRef.current.material as THREE.MeshBasicMaterial;
+      material.opacity = 0.03 + Math.sin(time.current * 2) * 0.015;
     }
   });
 
@@ -87,18 +93,27 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
 
   // Stronger thermals are more visible
   const strengthFactor = thermal.strength / 3.5;
+  const radius = thermal.radius * 0.8; // Symmetrical cylinder
 
   return (
-    <mesh ref={columnRef} position={[thermal.center.x, CLOUD_BASE / 2, thermal.center.y]}>
-      <cylinderGeometry args={[thermal.radius * 0.6, thermal.radius * 1.0, CLOUD_BASE, 16, 1, true]} />
-      <meshBasicMaterial
-        color="#ffffee"
-        transparent
-        opacity={0.1 + strengthFactor * 0.08}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-      />
-    </mesh>
+    <group position={[thermal.center.x, CLOUD_BASE / 2, thermal.center.y]}>
+      {/* Outer boundary (visible edge) */}
+      <mesh ref={columnRef}>
+        <cylinderGeometry args={[radius, radius, CLOUD_BASE, 24, 1, true]} />
+        <meshBasicMaterial
+          color="#ffffcc"
+          transparent
+          opacity={0.12 + strengthFactor * 0.06}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Interior fill (visible when inside) */}
+      <mesh ref={fillRef}>
+        <cylinderGeometry args={[radius * 0.95, radius * 0.95, CLOUD_BASE, 16]} />
+        <meshBasicMaterial color="#ffeeaa" transparent opacity={0.04 + strengthFactor * 0.03} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 

@@ -4,8 +4,6 @@ import {
   THERMAL_COUNT,
   THERMAL_DRIFT_FACTOR,
   THERMAL_OUTER_RADIUS,
-  THERMAL_SINK_PEAK_RADIUS,
-  THERMAL_SINK_WIDTH,
   THERMAL_TURBULENCE_AMPLITUDE,
   THERMAL_W_MAX,
   THERMAL_W_MIN,
@@ -13,6 +11,7 @@ import {
   WIND_SPEED,
   WORLD_SIZE,
 } from "./constants";
+// Note: THERMAL_SINK_PEAK_RADIUS and THERMAL_SINK_WIDTH removed - sink is disabled
 import * as THREE from "three";
 
 export interface Thermal {
@@ -128,8 +127,9 @@ export function getVerticalWindAt(position: THREE.Vector3, thermalSystem: Therma
   const pos2D = new THREE.Vector2(position.x, position.z);
 
   // Base sink rate (air generally sinks outside thermals)
-  const baseSink = -0.3;
-  totalW += baseSink;
+  // DISABLED: Just use thermals for lift, no background sink
+  // const baseSink = -0.3;
+  // totalW += baseSink;
 
   for (const thermal of thermalSystem.thermals) {
     const r = pos2D.distanceTo(thermal.center);
@@ -156,14 +156,14 @@ export function getVerticalWindAt(position: THREE.Vector3, thermalSystem: Therma
     // Updraft (Gaussian core)
     const coreW = thermal.strength * Math.exp(-(r * r) / (thermal.radius * thermal.radius));
 
-    // Sink ring around thermal
-    const sinkW =
-      thermal.strength *
-      0.4 *
-      Math.exp(-Math.pow(r - THERMAL_SINK_PEAK_RADIUS, 2) / (THERMAL_SINK_WIDTH * THERMAL_SINK_WIDTH));
+    // Sink ring around thermal - DISABLED for now
+    // const sinkW =
+    //   thermal.strength *
+    //   0.4 *
+    //   Math.exp(-Math.pow(r - THERMAL_SINK_PEAK_RADIUS, 2) / (THERMAL_SINK_WIDTH * THERMAL_SINK_WIDTH));
 
-    // Total contribution from this thermal
-    const thermalContribution = (coreW - sinkW) * heightFactor * ageFactor;
+    // Total contribution from this thermal (no sink)
+    const thermalContribution = coreW * heightFactor * ageFactor;
     totalW += thermalContribution;
   }
 

@@ -33,7 +33,7 @@ export const WEATHERVANE_STRENGTH = 0.3; // Reduced to prevent yaw oscillation
 // Control effectiveness
 export const MAX_ROLL_RATE = 70 * (Math.PI / 180); // rad/s
 export const MAX_PITCH_RATE = 35 * (Math.PI / 180); // rad/s
-export const MAX_YAW_RATE = 25 * (Math.PI / 180); // rad/s
+export const MAX_YAW_RATE = 45 * (Math.PI / 180); // rad/s (increased 20% for better rudder control)
 export const RUDDER_COORDINATION = 0; // Auto-rudder mix ratio (yaw per roll input)
 
 // Thermal defaults
@@ -44,11 +44,11 @@ export const THERMAL_W_MAX = 20; // m/s (strong thermal)
 export const THERMAL_W_MIN = 10; // m/s (weak thermal)
 export const THERMAL_SINK_PEAK_RADIUS = 250; // m
 export const THERMAL_SINK_WIDTH = 120; // m
-export const CLOUD_BASE = 1200; // m AGL
+export const CLOUD_BASE = 5000; // m AGL
 export const THERMAL_TURBULENCE_AMPLITUDE = 0.3; // m/s
 
 // Wind
-export const WIND_SPEED = 6; // m/s (~12 knots)
+export const WIND_SPEED = 0; // m/s (~12 knots)
 export const WIND_DIRECTION = Math.PI / 4; // radians (NE wind)
 export const THERMAL_DRIFT_FACTOR = 0.7; // thermals move at 0.7 * windSpeed
 
