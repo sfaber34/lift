@@ -276,10 +276,27 @@ export function updatePhysics(
   newAngularVel = applyDamping(newAngularVel, dt);
   newAngularVel = applyWeathervane(newAngularVel, newVelocity, state.quaternion, dt);
 
+  // Calculate air-relative velocity including thermal vertical wind
+  const fullWindVector = windField.horizontal.clone();
+  fullWindVector.y += windField.vertical;
+  const airVelocity = state.velocity.clone().sub(fullWindVector);
+  const alpha = calculateAngleOfAttack(airVelocity, state.quaternion);
+
+  // Pitch stability: glider naturally resists changes in angle of attack
+  // This prevents thermals from pitching the nose up excessively
+  // Target alpha is around 4 degrees (optimal glide)
+  const targetAlpha = 4 * (Math.PI / 180);
+  const alphaError = alpha - targetAlpha;
+  // Only apply stability correction for significant AoA deviations, and not when player is actively pitching
+  if (Math.abs(alphaError) > 2 * (Math.PI / 180) && Math.abs(controls.pitch) < 0.3) {
+    // Gentle pitch correction towards target alpha
+    // Positive alphaError (nose too high) -> pitch down (positive angularVel.x)
+    const stabilityCorrection = alphaError * 0.5; // Proportional correction
+    newAngularVel.x += stabilityCorrection * dt * 3;
+  }
+
   // Stall nose-drop: when stalled, the nose should drop to recover
   // Note: In this coordinate system, positive angularVel.x = pitch DOWN
-  const airVelocity = state.velocity.clone().sub(windField.horizontal);
-  const alpha = calculateAngleOfAttack(airVelocity, state.quaternion);
   if (alpha > STALL_ALPHA_POS) {
     // Positive stall (nose too high) - pitch nose DOWN (positive pitch rate)
     const stallSeverity = (alpha - STALL_ALPHA_POS) / (Math.PI / 18); // ~10 degrees past stall = full effect
