@@ -276,6 +276,22 @@ export function updatePhysics(
   newAngularVel = applyDamping(newAngularVel, dt);
   newAngularVel = applyWeathervane(newAngularVel, newVelocity, state.quaternion, dt);
 
+  // Stall nose-drop: when stalled, the nose should drop to recover
+  // Note: In this coordinate system, positive angularVel.x = pitch DOWN
+  const airVelocity = state.velocity.clone().sub(windField.horizontal);
+  const alpha = calculateAngleOfAttack(airVelocity, state.quaternion);
+  if (alpha > STALL_ALPHA_POS) {
+    // Positive stall (nose too high) - pitch nose DOWN (positive pitch rate)
+    const stallSeverity = (alpha - STALL_ALPHA_POS) / (Math.PI / 18); // ~10 degrees past stall = full effect
+    const noseDropRate = 1.5 * Math.min(1, stallSeverity); // Positive = pitch down
+    newAngularVel.x += noseDropRate * dt * 5;
+  } else if (alpha < STALL_ALPHA_NEG) {
+    // Negative stall (nose too low) - pitch nose UP (negative pitch rate)
+    const stallSeverity = (STALL_ALPHA_NEG - alpha) / (Math.PI / 18);
+    const noseUpRate = -1.5 * Math.min(1, stallSeverity); // Negative = pitch up
+    newAngularVel.x += noseUpRate * dt * 5;
+  }
+
   // Update orientation
   const newQuaternion = state.quaternion.clone();
 
