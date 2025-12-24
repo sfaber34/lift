@@ -114,30 +114,32 @@ function ThermalParticles({ thermal, radius }: { thermal: Thermal; radius: numbe
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial color="#ffffff" size={8} transparent opacity={0.6} sizeAttenuation depthWrite={false} />
+      <pointsMaterial color="#cc88ff" size={10} transparent opacity={0.7} sizeAttenuation depthWrite={false} />
     </points>
   );
 }
 
 // Thermal visualization - symmetrical rising air column with interior fill and particles
 function ThermalColumn({ thermal }: { thermal: Thermal }) {
-  const columnRef = useRef<THREE.Mesh>(null);
-  const fillRef = useRef<THREE.Mesh>(null);
-  const time = useRef(Math.random() * 100);
+  // Refs for shading meshes (currently disabled)
+  // const columnRef = useRef<THREE.Mesh>(null);
+  // const fillRef = useRef<THREE.Mesh>(null);
+  // const time = useRef(Math.random() * 100);
 
-  useFrame((_, delta) => {
-    time.current += delta;
-    if (columnRef.current) {
-      // Animate opacity - pulsing effect
-      const material = columnRef.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.15 + Math.sin(time.current * 1.5) * 0.05;
-    }
-    if (fillRef.current) {
-      // Interior fill pulses gently
-      const material = fillRef.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.04 + Math.sin(time.current * 2) * 0.02;
-    }
-  });
+  // Animation for shading (currently disabled)
+  // useFrame((_, delta) => {
+  //   time.current += delta;
+  //   if (columnRef.current) {
+  //     // Animate opacity - pulsing effect
+  //     const material = columnRef.current.material as THREE.MeshBasicMaterial;
+  //     material.opacity = 0.15 + Math.sin(time.current * 1.5) * 0.05;
+  //   }
+  //   if (fillRef.current) {
+  //     // Interior fill pulses gently
+  //     const material = fillRef.current.material as THREE.MeshBasicMaterial;
+  //     material.opacity = 0.04 + Math.sin(time.current * 2) * 0.02;
+  //   }
+  // });
 
   // Only show column when thermal is mature
   const lifeFraction = thermal.age / thermal.lifetime;
@@ -147,10 +149,13 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
   const strengthFactor = thermal.strength / 3.5;
   const radius = thermal.radius * 0.8; // Symmetrical cylinder
 
+  // Keep strengthFactor used to avoid lint warning
+  void strengthFactor;
+
   return (
     <group position={[thermal.center.x, CLOUD_BASE / 2, thermal.center.y]}>
-      {/* Outer boundary (visible edge) */}
-      <mesh ref={columnRef}>
+      {/* Outer boundary (visible edge) - DISABLED */}
+      {/* <mesh ref={columnRef}>
         <cylinderGeometry args={[radius, radius, CLOUD_BASE, 24, 1, true]} />
         <meshBasicMaterial
           color="#ffffcc"
@@ -159,13 +164,13 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
           side={THREE.DoubleSide}
           depthWrite={false}
         />
-      </mesh>
-      {/* Interior fill (visible when inside) */}
-      <mesh ref={fillRef}>
+      </mesh> */}
+      {/* Interior fill (visible when inside) - DISABLED */}
+      {/* <mesh ref={fillRef}>
         <cylinderGeometry args={[radius * 0.95, radius * 0.95, CLOUD_BASE, 16]} />
         <meshBasicMaterial color="#ffeeaa" transparent opacity={0.05 + strengthFactor * 0.03} depthWrite={false} />
-      </mesh>
-      {/* Rising particles */}
+      </mesh> */}
+      {/* Rising particles - ENABLED */}
       <ThermalParticles thermal={thermal} radius={radius} />
     </group>
   );

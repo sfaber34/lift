@@ -156,31 +156,26 @@ const TerrainChunk = memo(function TerrainChunk({
   );
 });
 
-// Main terrain component with chunking
+// Static terrain - all chunks pre-generated at startup (no dynamic loading)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Terrain({ playerPosition }: TerrainProps) {
   const chunkSize = 500;
-  const viewDistance = 3; // Number of chunks in each direction
-  const resolution = 32; // Reduced from 64 for better performance
+  const gridSize = 20; // 20x20 grid = 10000x10000 meters centered on origin
+  const resolution = 20; // Lower resolution for more chunks
 
-  // Pre-calculate chunk coordinates for dependency array
-  const centerChunkX = Math.round(playerPosition.x / chunkSize);
-  const centerChunkZ = Math.round(playerPosition.z / chunkSize);
-
-  // Calculate which chunks are visible
+  // Generate all chunks once at startup (static, no dependencies on player position)
   const chunks = useMemo(() => {
-    const visibleChunks: Array<{ x: number; z: number }> = [];
+    const allChunks: Array<{ x: number; z: number }> = [];
+    const halfGrid = Math.floor(gridSize / 2);
 
-    for (let dx = -viewDistance; dx <= viewDistance; dx++) {
-      for (let dz = -viewDistance; dz <= viewDistance; dz++) {
-        visibleChunks.push({
-          x: centerChunkX + dx,
-          z: centerChunkZ + dz,
-        });
+    for (let x = -halfGrid; x < halfGrid; x++) {
+      for (let z = -halfGrid; z < halfGrid; z++) {
+        allChunks.push({ x, z });
       }
     }
 
-    return visibleChunks;
-  }, [centerChunkX, centerChunkZ]);
+    return allChunks;
+  }, []); // Empty deps = only calculated once
 
   return (
     <group>

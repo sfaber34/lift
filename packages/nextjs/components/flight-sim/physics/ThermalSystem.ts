@@ -29,14 +29,20 @@ export interface ThermalSystemState {
   time: number;
 }
 
-// Create a new thermal at a random position
+// Land bounds - thermals only spawn over terrain (20x20 grid of 500m chunks = 10000x10000m)
+const LAND_HALF_SIZE = 4800; // Slightly inside terrain edge to keep thermals fully over land
+
+// Create a new thermal at a random position (only over land)
 function createThermal(existingThermals: Thermal[]): Thermal {
-  // Try to find a position not too close to existing thermals
+  // Try to find a position not too close to existing thermals, and only over land
   let center: THREE.Vector2;
   let attempts = 0;
 
   do {
-    center = new THREE.Vector2((Math.random() - 0.5) * WORLD_SIZE * 0.8, (Math.random() - 0.5) * WORLD_SIZE * 0.8);
+    // Spawn only within land bounds
+    const x = (Math.random() - 0.5) * LAND_HALF_SIZE * 2;
+    const z = (Math.random() - 0.5) * LAND_HALF_SIZE * 2;
+    center = new THREE.Vector2(x, z);
     attempts++;
   } while (attempts < 10 && existingThermals.some(t => t.center.distanceTo(center) < THERMAL_OUTER_RADIUS * 2));
 

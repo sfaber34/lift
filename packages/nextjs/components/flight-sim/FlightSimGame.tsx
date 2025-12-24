@@ -43,9 +43,12 @@ function GameLoop({
     gliderStateRef.current.quaternion.copy(newState.quaternion);
     gliderStateRef.current.angularVelocity.copy(newState.angularVelocity);
 
-    // Update thermals periodically
+    // Update thermal time every frame for smooth turbulence
+    thermalSystemRef.current.time += delta;
+
+    // Do full thermal update (spawn/despawn, drift) less frequently
     lastThermalUpdateRef.current += delta;
-    if (lastThermalUpdateRef.current > 0.5) {
+    if (lastThermalUpdateRef.current > 2.0) {
       thermalSystemRef.current = updateThermalSystem(thermalSystemRef.current, lastThermalUpdateRef.current);
       lastThermalUpdateRef.current = 0;
     }
@@ -254,7 +257,7 @@ function GliderCameraController({ gliderStateRef }: { gliderStateRef: React.Muta
   const smoothLookRef = useRef(new THREE.Vector3());
   const initialized = useRef(false);
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera }, delta) => {
     const state = gliderStateRef.current;
 
     // Calculate camera position behind and above the glider
@@ -274,9 +277,10 @@ function GliderCameraController({ gliderStateRef }: { gliderStateRef: React.Muta
       initialized.current = true;
     }
 
-    // Smooth camera follow
-    smoothPosRef.current.lerp(targetPos, 0.05);
-    smoothLookRef.current.lerp(lookTarget, 0.05);
+    // Smooth camera follow (frame-rate independent)
+    const smoothFactor = 1 - Math.pow(0.001, delta); // ~0.05 at 60fps, adjusts for frame rate
+    smoothPosRef.current.lerp(targetPos, smoothFactor);
+    smoothLookRef.current.lerp(lookTarget, smoothFactor);
 
     camera.position.copy(smoothPosRef.current);
     camera.lookAt(smoothLookRef.current);
@@ -330,7 +334,7 @@ export function FlightSimGame() {
   });
 
   // UI state
-  const [showHelp, setShowHelp] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Handle control updates from joystick
   const handleControlUpdate = useCallback((input: ControlInput) => {
@@ -382,17 +386,45 @@ export function FlightSimGame() {
         </Canvas>
       </div>
 
-      {/* Start Screen */}
+      {/* Start Screen with Controls Tutorial */}
       {!gameStarted && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">Glider Sim</h1>
-            <p className="text-white/70 mb-8 max-w-md mx-auto px-4">
-              Find thermals to gain altitude. Use the joysticks to control pitch, roll, and rudder.
-            </p>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+          <div className="bg-gray-900/90 p-6 rounded-xl max-w-md text-white mx-4">
+            <h1 className="text-3xl font-bold text-center mb-2">🪂 Glider Sim</h1>
+            <p className="text-white/60 text-center text-sm mb-4">Find thermals to gain altitude and stay aloft!</p>
+
+            <div className="space-y-3 text-sm mb-6">
+              <div>
+                <h3 className="font-bold text-amber-400">Right Stick / Arrow Keys</h3>
+                <ul className="ml-4 mt-1 space-y-0.5 text-white/80">
+                  <li>↑ / W - Pitch up (climb, slow down)</li>
+                  <li>↓ / S - Pitch down (dive, speed up)</li>
+                  <li>← / A - Roll left</li>
+                  <li>→ / D - Roll right</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-amber-400">Left Stick / Q &amp; E</h3>
+                <ul className="ml-4 mt-1 space-y-0.5 text-white/80">
+                  <li>Q - Rudder left</li>
+                  <li>E - Rudder right</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-amber-400">Tips</h3>
+                <ul className="ml-4 mt-1 space-y-0.5 text-white/80">
+                  <li>• Watch the variometer - green = lift!</li>
+                  <li>• Circle in thermals to climb</li>
+                  <li>• Keep airspeed above 70 km/h</li>
+                </ul>
+              </div>
+            </div>
+
             <button
               onClick={handleStart}
-              className="px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold text-xl 
+              className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-lg 
                          rounded-xl shadow-lg transition-colors"
             >
               Start Flying
