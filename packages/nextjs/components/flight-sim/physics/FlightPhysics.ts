@@ -367,13 +367,14 @@ export function getTelemetry(
   const airspeed = airVelocity.length();
 
   const forward = getForwardVector(state.quaternion);
-  const up = getUpVector(state.quaternion);
+  const right = getRightVector(state.quaternion);
 
   // Heading (yaw angle from north, +Z is north)
   const heading = Math.atan2(forward.x, forward.z) * (180 / Math.PI);
 
-  // Bank angle (roll)
-  const bankAngle = Math.atan2(up.x, up.y) * (180 / Math.PI);
+  // Bank angle: how much the right wing points up or down (independent of heading)
+  // Positive = right wing down = right bank
+  const bankAngle = Math.asin(right.y) * (180 / Math.PI);
 
   // Pitch angle (positive = nose up)
   const pitchAngle = Math.asin(forward.y) * (180 / Math.PI);

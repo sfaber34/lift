@@ -16,16 +16,21 @@ function GameLoop({
   gliderStateRef,
   thermalSystemRef,
   onTelemetryUpdate,
+  isPaused,
 }: {
   controls: React.MutableRefObject<ControlInput>;
   gliderStateRef: React.MutableRefObject<GliderState>;
   thermalSystemRef: React.MutableRefObject<ThermalSystemState>;
   onTelemetryUpdate: (telemetry: ReturnType<typeof getTelemetry>) => void;
+  isPaused: boolean;
 }) {
   const lastThermalUpdateRef = useRef(0);
   const telemetryUpdateRef = useRef(0);
 
   useFrame((_, delta) => {
+    // Don't update physics when paused
+    if (isPaused) return;
+
     // Get wind at current position
     const windField = getWindFieldAt(gliderStateRef.current.position, thermalSystemRef.current);
 
@@ -172,9 +177,9 @@ function GliderRenderer({
         <meshStandardMaterial color="#e8e8e8" metalness={0.3} roughness={0.7} />
       </mesh>
 
-      {/* Canopy - near nose */}
-      <mesh position={[0, 0.3, 1.5]}>
-        <sphereGeometry args={[0.5, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+      {/* Canopy - elongated bubble that fits within fuselage width */}
+      <mesh position={[0, 0.25, 1.5]} scale={[0.25, 0.3, 0.8]}>
+        <sphereGeometry args={[1, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial color="#3399ff" transparent opacity={0.6} metalness={0.8} roughness={0.2} />
       </mesh>
 
@@ -305,6 +310,9 @@ export function FlightSimGame() {
   const gliderStateRef = useRef<GliderState>(createInitialState(new THREE.Vector3(0, 500, 0), 0));
   const thermalSystemRef = useRef<ThermalSystemState>(createThermalSystem());
 
+  // Game started state - paused until user clicks start
+  const [gameStarted, setGameStarted] = useState(false);
+
   // Reset trigger to force re-initialization
   const [resetTrigger, setResetTrigger] = useState(0);
 
@@ -339,6 +347,12 @@ export function FlightSimGame() {
     gliderStateRef.current = createInitialState(new THREE.Vector3(0, 500, 0), 0);
     thermalSystemRef.current = createThermalSystem();
     setResetTrigger(t => t + 1);
+    setGameStarted(true); // Auto-start after reset
+  }, []);
+
+  // Start game
+  const handleStart = useCallback(() => {
+    setGameStarted(true);
   }, []);
 
   return (
@@ -363,35 +377,59 @@ export function FlightSimGame() {
             gliderStateRef={gliderStateRef}
             thermalSystemRef={thermalSystemRef}
             onTelemetryUpdate={handleTelemetryUpdate}
+            isPaused={!gameStarted}
           />
         </Canvas>
       </div>
 
-      {/* HUD Overlay */}
-      <HUD
-        airspeed={telemetry.airspeed}
-        altitude={telemetry.altitude}
-        verticalSpeed={telemetry.verticalSpeed}
-        isStalling={telemetry.isStalling}
-        bankAngle={telemetry.bankAngle}
-        pitchAngle={telemetry.pitchAngle}
-      />
+      {/* Start Screen */}
+      {!gameStarted && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-white mb-4">Glider Sim</h1>
+            <p className="text-white/70 mb-8 max-w-md mx-auto px-4">
+              Find thermals to gain altitude. Use the joysticks to control pitch, roll, and rudder.
+            </p>
+            <button
+              onClick={handleStart}
+              className="px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold text-xl 
+                         rounded-xl shadow-lg transition-colors"
+            >
+              Start Flying
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Joystick Controls */}
-      <JoystickControls onControlUpdate={handleControlUpdate} />
+      {/* HUD Overlay - only show when game started */}
+      {gameStarted && (
+        <HUD
+          airspeed={telemetry.airspeed}
+          altitude={telemetry.altitude}
+          verticalSpeed={telemetry.verticalSpeed}
+          isStalling={telemetry.isStalling}
+          bankAngle={telemetry.bankAngle}
+          pitchAngle={telemetry.pitchAngle}
+        />
+      )}
 
-      {/* Top center buttons */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2">
-        <button
-          onClick={() => setShowHelp(true)}
-          className="px-3 py-2 bg-white/10 hover:bg-white/20 
-                     text-white font-mono text-sm rounded-lg border border-white/20
-                     transition-colors backdrop-blur-sm"
-        >
-          ?
-        </button>
-        <ResetButton onReset={handleReset} />
-      </div>
+      {/* Joystick Controls - only show when game started */}
+      {gameStarted && <JoystickControls onControlUpdate={handleControlUpdate} />}
+
+      {/* Top center buttons - only show when game started */}
+      {gameStarted && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="px-3 py-2 bg-white/10 hover:bg-white/20 
+                       text-white font-mono text-sm rounded-lg border border-white/20
+                       transition-colors backdrop-blur-sm"
+          >
+            ?
+          </button>
+          <ResetButton onReset={handleReset} />
+        </div>
+      )}
 
       {/* Help Overlay */}
       {showHelp && <ControlsHelp onClose={() => setShowHelp(false)} />}

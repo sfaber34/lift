@@ -44,13 +44,17 @@ function createThermal(existingThermals: Thermal[]): Thermal {
   const strength = THERMAL_W_MIN + Math.random() * (THERMAL_W_MAX - THERMAL_W_MIN);
   const radius = THERMAL_CORE_RADIUS * (0.8 + Math.random() * 0.4);
 
+  const lifetime = 600 + Math.random() * 300; // 10-15 minutes
+  // Start with random age so thermals are visible immediately (between 10% and 60% of lifetime)
+  const age = lifetime * (0.1 + Math.random() * 0.5);
+
   return {
     id: Math.random().toString(36).substring(7),
     center,
     radius,
     strength,
-    age: 0,
-    lifetime: 180 + Math.random() * 300, // 3-8 minutes
+    age,
+    lifetime,
   };
 }
 

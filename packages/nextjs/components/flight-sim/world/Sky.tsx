@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Thermal, ThermalSystemState } from "../physics/ThermalSystem";
 import { CLOUD_BASE } from "../physics/constants";
 import { Sky as DreiSky } from "@react-three/drei";
@@ -67,7 +67,59 @@ function ThermalCloud({ thermal }: { thermal: Thermal }) {
   );
 }
 
-// Thermal visualization - symmetrical rising air column with interior fill
+// Rising particles inside thermal
+function ThermalParticles({ thermal, radius }: { thermal: Thermal; radius: number }) {
+  const particlesRef = useRef<THREE.Points>(null);
+  const particleCount = 150; // More particles for better visibility
+
+  // Create particle positions
+  const positions = useMemo(() => {
+    const pos = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      // Random position within cylinder
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * radius * 0.9;
+      pos[i * 3] = Math.cos(angle) * r;
+      pos[i * 3 + 1] = Math.random() * CLOUD_BASE - CLOUD_BASE / 2;
+      pos[i * 3 + 2] = Math.sin(angle) * r;
+    }
+    return pos;
+  }, [radius]);
+
+  useFrame((_, delta) => {
+    if (particlesRef.current) {
+      const posArray = particlesRef.current.geometry.attributes.position.array as Float32Array;
+      const riseSpeed = thermal.strength * 8; // Rise speed based on thermal strength
+
+      for (let i = 0; i < particleCount; i++) {
+        // Move particles up
+        posArray[i * 3 + 1] += riseSpeed * delta;
+
+        // Reset particles that go above cloud base
+        if (posArray[i * 3 + 1] > CLOUD_BASE / 2) {
+          posArray[i * 3 + 1] = -CLOUD_BASE / 2 + Math.random() * 100;
+          // Randomize horizontal position when resetting
+          const angle = Math.random() * Math.PI * 2;
+          const r = Math.random() * radius * 0.9;
+          posArray[i * 3] = Math.cos(angle) * r;
+          posArray[i * 3 + 2] = Math.sin(angle) * r;
+        }
+      }
+      particlesRef.current.geometry.attributes.position.needsUpdate = true;
+    }
+  });
+
+  return (
+    <points ref={particlesRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color="#ffffff" size={8} transparent opacity={0.6} sizeAttenuation depthWrite={false} />
+    </points>
+  );
+}
+
+// Thermal visualization - symmetrical rising air column with interior fill and particles
 function ThermalColumn({ thermal }: { thermal: Thermal }) {
   const columnRef = useRef<THREE.Mesh>(null);
   const fillRef = useRef<THREE.Mesh>(null);
@@ -83,7 +135,7 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
     if (fillRef.current) {
       // Interior fill pulses gently
       const material = fillRef.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.03 + Math.sin(time.current * 2) * 0.015;
+      material.opacity = 0.04 + Math.sin(time.current * 2) * 0.02;
     }
   });
 
@@ -111,8 +163,10 @@ function ThermalColumn({ thermal }: { thermal: Thermal }) {
       {/* Interior fill (visible when inside) */}
       <mesh ref={fillRef}>
         <cylinderGeometry args={[radius * 0.95, radius * 0.95, CLOUD_BASE, 16]} />
-        <meshBasicMaterial color="#ffeeaa" transparent opacity={0.04 + strengthFactor * 0.03} depthWrite={false} />
+        <meshBasicMaterial color="#ffeeaa" transparent opacity={0.05 + strengthFactor * 0.03} depthWrite={false} />
       </mesh>
+      {/* Rising particles */}
+      <ThermalParticles thermal={thermal} radius={radius} />
     </group>
   );
 }

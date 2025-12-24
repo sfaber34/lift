@@ -159,55 +159,44 @@ function Altimeter({ altitude }: { altitude: number }) {
   );
 }
 
-// Bank angle indicator (artificial horizon simplified)
+// Artificial horizon - shows pitch and bank
 function AttitudeIndicator({ bankAngle, pitchAngle }: { bankAngle: number; pitchAngle: number }) {
   // Clamp pitch display to reasonable range
   const displayPitch = Math.max(-40, Math.min(40, pitchAngle));
 
   return (
     <div className="relative h-20 w-20 bg-black/70 rounded-full border border-white/30 overflow-hidden">
-      {/* Sky/Ground - nose up = more sky = horizon moves down = higher percentage */}
+      {/* Sky/Ground background - rotates with bank, shifts with pitch */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-[-50%] w-[200%] h-[200%]"
         style={{
-          transform: `rotate(${-bankAngle}deg)`,
+          transform: `rotate(${-bankAngle}deg) translateY(${displayPitch * 0.8}px)`,
           background: `linear-gradient(to bottom, 
             #4a90d9 0%, 
-            #4a90d9 ${50 + displayPitch}%, 
-            #8b6914 ${50 + displayPitch}%, 
+            #4a90d9 50%, 
+            #8b6914 50%, 
             #8b6914 100%)`,
         }}
       />
 
-      {/* Horizon line */}
-      <div
-        className="absolute left-2 right-2 h-0.5 bg-white top-1/2"
-        style={{
-          transform: `rotate(${-bankAngle}deg) translateY(${-displayPitch * 0.4}px)`,
-        }}
-      />
-
-      {/* Aircraft symbol (fixed) */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* Aircraft symbol (fixed in center) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="relative">
           {/* Wings */}
-          <div className="absolute top-1/2 left-1/2 w-8 h-0.5 bg-yellow-400 -translate-x-1/2 -translate-y-1/2" />
-          {/* Nose */}
-          <div className="absolute top-1/2 left-1/2 w-0.5 h-2 bg-yellow-400 -translate-x-1/2 -translate-y-full" />
+          <div className="absolute top-1/2 left-1/2 w-10 h-1 bg-yellow-400 -translate-x-1/2 -translate-y-1/2 rounded-sm shadow-md" />
           {/* Center dot */}
-          <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-yellow-400 rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-yellow-400 rounded-full -translate-x-1/2 -translate-y-1/2 shadow-md" />
         </div>
       </div>
 
-      {/* Bank markers */}
-      <div className="absolute top-1 left-1/2 w-px h-2 bg-white -translate-x-1/2" />
+      {/* Fixed reference triangle at top */}
       <div
-        className="absolute top-2 left-1/2 w-px h-1.5 bg-white/60 origin-bottom"
-        style={{ transform: "translateX(-50%) rotate(-30deg)" }}
-      />
-      <div
-        className="absolute top-2 left-1/2 w-px h-1.5 bg-white/60 origin-bottom"
-        style={{ transform: "translateX(-50%) rotate(30deg)" }}
+        className="absolute top-1 left-1/2 -translate-x-1/2 w-0 h-0"
+        style={{
+          borderLeft: "4px solid transparent",
+          borderRight: "4px solid transparent",
+          borderTop: "6px solid white",
+        }}
       />
     </div>
   );

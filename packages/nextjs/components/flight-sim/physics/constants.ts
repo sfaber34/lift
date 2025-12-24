@@ -37,14 +37,14 @@ export const MAX_YAW_RATE = 45 * (Math.PI / 180); // rad/s (increased 20% for be
 export const RUDDER_COORDINATION = 0; // Auto-rudder mix ratio (yaw per roll input)
 
 // Thermal defaults
-export const THERMAL_COUNT = 20;
+export const THERMAL_COUNT = 12;
 export const THERMAL_CORE_RADIUS = 350; // m
 export const THERMAL_OUTER_RADIUS = 600; // m
-export const THERMAL_W_MAX = 20; // m/s (strong thermal)
-export const THERMAL_W_MIN = 10; // m/s (weak thermal)
+export const THERMAL_W_MAX = 30; // m/s (strong thermal)
+export const THERMAL_W_MIN = 5; // m/s (weak thermal)
 export const THERMAL_SINK_PEAK_RADIUS = 250; // m
 export const THERMAL_SINK_WIDTH = 120; // m
-export const CLOUD_BASE = 5000; // m AGL
+export const CLOUD_BASE = 2500; // m AGL
 export const THERMAL_TURBULENCE_AMPLITUDE = 0.3; // m/s
 
 // Wind
